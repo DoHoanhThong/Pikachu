@@ -7,6 +7,7 @@ public class LoadScene : MonoBehaviour
 {
     public void Load_Scene(int scenceId)
     {
+        PlaySound.instance.PlayClickSound();
         SceneManager.LoadScene(scenceId);
     }
 }

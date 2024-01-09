@@ -5,30 +5,43 @@ using UnityEngine.UI;
 
 public class CANVASScaler : MonoBehaviour
 {
-    GameObject _canvas;
-    // Start is called before the first frame update
-    private void Awake()
+    //Landscape Screen
+    private const float WIDTH_DEFAULT = 1920f;
+    private const float HEIGHT_DEFAULT = 1080f;
+
+    private float _currentWidth;
+    private float _currentHeight;
+    private CanvasScaler _canvasScaler;
+
+    private float _originScale = 0.5f;
+
+    private void Start()
     {
-        _canvas = this.gameObject;
+        _currentWidth = GetComponent<RectTransform>().rect.width;
+        _currentHeight = GetComponent<RectTransform>().rect.height;
+        _canvasScaler = GetComponent<CanvasScaler>();
+
+        _originScale = _canvasScaler.matchWidthOrHeight;
+        ScaleScreen();
     }
-    void Start()
+    //private void Update()
+    //{
+    //    ScaleScreen();
+    //}
+    private void ScaleScreen()
     {
-        _canvas.GetComponent<Canvas>().worldCamera = Camera.main;
-        float aspect = (float)Screen.width / Screen.height;
+        float currentWidth = GetComponent<RectTransform>().rect.width;
+        float currentHeight = GetComponent<RectTransform>().rect.height;
+        float ratioCurrent = currentHeight / currentWidth;
+        float ratioDefault = HEIGHT_DEFAULT / WIDTH_DEFAULT;
 
-        if (aspect > 0.5625f)
-        {
-            _canvas.GetComponent<CanvasScaler>().matchWidthOrHeight = 1;
+        //CanvasScaler canvasScaler = GetComponent<CanvasScaler>();
 
-        }
-        else if (aspect == 0.5625f)
-        {
-            _canvas.GetComponent<CanvasScaler>().matchWidthOrHeight = 0.5f;
+        _canvasScaler.matchWidthOrHeight = (ratioCurrent / ratioDefault) * _originScale;
 
-        }
-        else
-        {
-            _canvas.GetComponent<CanvasScaler>().matchWidthOrHeight = 0;
-        }
+        //if (ratioCurrent > ratioDefault) canvasScaler.matchWidthOrHeight = 0f;
+        //if (ratioCurrent < ratioDefault) canvasScaler.matchWidthOrHeight = 1f;
+        //if (ratioCurrent == ratioDefault) canvasScaler.matchWidthOrHeight = 0.5f;
+
     }
 }

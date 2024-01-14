@@ -11,10 +11,9 @@ public class AudioSetting : MonoBehaviour
     [SerializeField] GameObject Sound_Off;
     AudioSource MS;
     AudioSource Sound;
-    // Start is called before the first frame update
     void Start()
     {
-        PlayerPrefs.DeleteAll();
+        //PlayerPrefs.DeleteAll();
         Sound = PlaySound.instance.audioSource;
         MS = PlaySound.instance.transform.GetChild(0).GetComponent<AudioSource>();
         if (!PlayerPrefs.HasKey("MUSIC"))
@@ -25,26 +24,29 @@ public class AudioSetting : MonoBehaviour
         {
             PlayerPrefs.SetInt("SOUND", 1);
         }
-        Music_On.SetActive( (PlayerPrefs.GetInt("MUSIC")==1) ? true : false);
-        Music_Off.SetActive( (PlayerPrefs.GetInt("MUSIC") == 1) ? false : true);
+        Checking("SOUND");
+        Checking("MUSIC");
+    }
+    void Checking(string name)
+    {
+        AudioSource g = (name == "MUSIC") ? MS : Sound;
+        GameObject on = (name == "MUSIC") ? Music_On : Sound_On;
+        GameObject off = (name == "MUSIC") ? Music_Off : Sound_Off;
 
-        Sound_On.SetActive( (PlayerPrefs.GetInt("MUSIC") == 1) ? true : false);
-        Sound_Off.SetActive((PlayerPrefs.GetInt("MUSIC") == 1) ? false : true);
+        on.SetActive((PlayerPrefs.GetInt(name) == 1) ? true : false);
+        off.SetActive((PlayerPrefs.GetInt(name) == 1) ? false : true);
+        g.volume = (PlayerPrefs.GetInt(name) == 1) ? 1 : 0;
     }
     public void OnClickSound()
     {
         PlayerPrefs.SetInt("SOUND", (PlayerPrefs.GetInt("SOUND") == 1) ? 0 : 1);
-        Sound_On.SetActive((PlayerPrefs.GetInt("SOUND") == 1) ? true : false);
-        Sound_Off.SetActive((PlayerPrefs.GetInt("SOUND") == 1) ? false : true);
-        Sound.volume = (PlayerPrefs.GetInt("SOUND") == 1) ? 1 : 0;
+        Checking("SOUND");
         PlaySound.instance.PlayClickSound();
     }
     public void OnClickMusic()
     {
         PlayerPrefs.SetInt("MUSIC", (PlayerPrefs.GetInt("MUSIC") == 1) ? 0 : 1);
-        Music_On.SetActive((PlayerPrefs.GetInt("MUSIC") == 1) ? true : false);
-        Music_Off.SetActive((PlayerPrefs.GetInt("MUSIC") == 1) ? false : true);
-        MS.volume = (PlayerPrefs.GetInt("MUSIC") == 1) ? 1 : 0;
+        Checking("MUSIC");
         PlaySound.instance.PlayClickSound();
     }
 }

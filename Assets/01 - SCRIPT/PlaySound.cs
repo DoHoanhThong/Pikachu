@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class PlaySound : Singleton<PlaySound>
@@ -20,11 +19,11 @@ public class PlaySound : Singleton<PlaySound>
     {
         PlaySFX("CLICK");
     }
-    public void PlayFailSound()
+    public void PlayWrongSound()
     {
         PlaySFX("BAD");
     }
-    public void PlayRightSound()
+    public void PlayCorrectSound()
     {
         PlaySFX("GOOD");
     }

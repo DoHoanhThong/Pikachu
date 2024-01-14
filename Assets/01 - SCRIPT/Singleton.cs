@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 {
+    public bool isDontDestroy;
     private static T _instance;
     public static T instance => _instance;
     private void Awake()
@@ -12,7 +13,11 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
         if (_instance == null)
         {
             _instance = this.GetComponent<T>();
-            DontDestroyOnLoad(this);
+            if (isDontDestroy)
+            {
+                DontDestroyOnLoad(this);
+            }
+            
             return;
         }
         if (_instance.gameObject.GetInstanceID() != this.gameObject.GetInstanceID())

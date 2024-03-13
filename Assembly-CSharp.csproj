@@ -56,18 +56,38 @@
     <Analyzer Include="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\01 - SCRIPT\Character.cs" />
+    <Compile Include="Assets\01 - SCRIPT\GameManager.cs" />
     <Compile Include="Assets\01 - SCRIPT\Sound.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleUnityVersion.cs" />
     <Compile Include="Assets\01 - SCRIPT\CANVASScaler.cs" />
     <Compile Include="Assets\01 - SCRIPT\BtnOnClick.cs" />
     <Compile Include="Assets\01 - SCRIPT\PlaySound.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleEPOOutline.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleUtils.cs" />
     <Compile Include="Assets\01 - SCRIPT\GameController.cs" />
-    <Compile Include="Assets\01 - SCRIPT\Node.cs" />
     <Compile Include="Assets\01 - SCRIPT\GridCell.cs" />
+    <Compile Include="Assets\01 - SCRIPT\FPSRender.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleUI.cs" />
+    <Compile Include="Assets\01 - SCRIPT\MoveCell.cs" />
+    <Compile Include="Assets\01 - SCRIPT\JsonSaveLoad.cs" />
     <Compile Include="Assets\01 - SCRIPT\AudioSetting.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModulePhysics2D.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleAudio.cs" />
+    <Compile Include="Assets\01 - SCRIPT\LoadSavePP.cs" />
+    <Compile Include="Assets\01 - SCRIPT\FindPath.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModulePhysics.cs" />
     <Compile Include="Assets\01 - SCRIPT\Singleton.cs" />
+    <Compile Include="Assets\01 - SCRIPT\DrawPath.cs" />
+    <Compile Include="Assets\01 - SCRIPT\DATAsave.cs" />
+    <Compile Include="Assets\DOTween\Modules\DOTweenModuleSprite.cs" />
+    <Compile Include="Assets\01 - SCRIPT\LevelSetting.cs" />
     <Compile Include="Assets\01 - SCRIPT\ObjectPooling.cs" />
     <Compile Include="Assets\01 - SCRIPT\LoadScene.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\DOTween\DOTween.XML" />
+    <None Include="Assets\DOTween\readme.txt" />
+    <None Include="Assets\DOTween\DOTween.dll" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -324,6 +344,9 @@
     </Reference>
     <Reference Include="Unity.VisualScripting.Antlr3.Runtime">
       <HintPath>Library\PackageCache\com.unity.visualscripting@1.8.0\Runtime\VisualScripting.Flow\Dependencies\NCalc\Unity.VisualScripting.Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="DOTween">
+      <HintPath>Assets\DOTween\DOTween.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Android.Types">
       <HintPath>C:\Users\Admin\Documents\Unity\2021.3.28f1\Editor\Data\PlaybackEngines\AndroidPlayer\Unity.Android.Types.dll</HintPath>

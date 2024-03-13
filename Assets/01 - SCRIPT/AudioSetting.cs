@@ -24,10 +24,10 @@ public class AudioSetting : MonoBehaviour
         {
             PlayerPrefs.SetInt("SOUND", 1);
         }
-        Checking("SOUND");
-        Checking("MUSIC");
+        Checking("SOUND",1);
+        Checking("MUSIC",0.8f);
     }
-    void Checking(string name)
+    void Checking(string name, float volume)
     {
         AudioSource g = (name == "MUSIC") ? MS : Sound;
         GameObject on = (name == "MUSIC") ? Music_On : Sound_On;
@@ -35,18 +35,18 @@ public class AudioSetting : MonoBehaviour
 
         on.SetActive((PlayerPrefs.GetInt(name) == 1) ? true : false);
         off.SetActive((PlayerPrefs.GetInt(name) == 1) ? false : true);
-        g.volume = (PlayerPrefs.GetInt(name) == 1) ? 1 : 0;
+        g.volume = (PlayerPrefs.GetInt(name) == 1) ? volume : 0;
     }
     public void OnClickSound()
     {
         PlayerPrefs.SetInt("SOUND", (PlayerPrefs.GetInt("SOUND") == 1) ? 0 : 1);
-        Checking("SOUND");
+        Checking("SOUND",1);
         PlaySound.instance.PlayClickSound();
     }
     public void OnClickMusic()
     {
         PlayerPrefs.SetInt("MUSIC", (PlayerPrefs.GetInt("MUSIC") == 1) ? 0 : 1);
-        Checking("MUSIC");
+        Checking("MUSIC",0.8f);
         PlaySound.instance.PlayClickSound();
     }
 }

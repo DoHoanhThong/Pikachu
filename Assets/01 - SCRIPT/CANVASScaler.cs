@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class CANVASScaler : MonoBehaviour
 {
+    [SerializeField] GameObject Continue;
     private const float WIDTH_DEFAULT = 1920f;
     private const float HEIGHT_DEFAULT = 1080f;
 
@@ -16,6 +17,10 @@ public class CANVASScaler : MonoBehaviour
 
     private void Start()
     {
+        if (GameManager.instance.isExistData && Continue!=null)
+        {
+            Continue.SetActive(true);
+        }
         _currentWidth = GetComponent<RectTransform>().rect.width;
         _currentHeight = GetComponent<RectTransform>().rect.height;
         _canvasScaler = GetComponent<CanvasScaler>();

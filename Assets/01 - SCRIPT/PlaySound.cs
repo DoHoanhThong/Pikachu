@@ -35,5 +35,8 @@ public class PlaySound : Singleton<PlaySound>
     {
         PlaySFX("RANDOM");
     }
-
+    public void PlayWINSound()
+    {
+        PlaySFX("WIN");
+    }
 }

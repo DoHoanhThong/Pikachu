@@ -1,39 +1,124 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Reflection;
+using System.Threading;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using static Unity.Burst.Intrinsics.X86.Avx;
-
+using DG.Tweening;
 public class GameController : Singleton<GameController>
 {
-    
-    [SerializeField] bool isSpecial;
-    public int countClick;
+    //Action
+    public static System.Action onHomeClick;
+    //public static System.Action Next_Level;
+    //private
+    int rows, cols;
+    Coroutine a;
+    bool isLose = false;
+    bool isWinning = false;
+    bool isChanging;
+    bool isSuggesting;
+    List<int> used;
+    List<int> usedBG;
+
+    //SerializeField
+    [SerializeField] MoveCell moveCell;
+    [SerializeField] int time, begin;
+    [SerializeField] LoadSavePP pp;
+    [SerializeField] Text winText;
+    [SerializeField] Image bg, change, hint;
+    [SerializeField] JsonSaveLoad json;
+    [SerializeField] Image cd;
+    [SerializeField] FindPath findPath;
+    [SerializeField] GameObject WinPanel;
+    [SerializeField] GameObject LosePanel;
+    [SerializeField] DrawPath drawPath;
+    [SerializeField] int currentCouple = 0;
+    //public
+    public bool isMovingCell;
+    public float CD_click;
     public GridCell cell1, cell2;
     public GridLayoutGroup gridLayoutGroup;
-    public int[,] grid; // Mảng lưu giá trị của mỗi ô trong lưới
     public LineRenderer lineRenderer;
-    [SerializeField]private List<GridCell> path;
-    int rows, cols;
-    public List<GameObject> blocks = new List<GameObject>();
-    [SerializeField] Image cd;
-    int time, begin = 60;
-    List<int> used;
+    public List<GridCell> blocks = new List<GridCell>();
+    //end
+
     // Start is called before the first frame update
     void Start()
     {
-        countClick = 0;
+        BtnOnClick.isResume += Resume;
+        BtnOnClick.isPause += Pause;
+        Application.quitting += Quit;
+        onHomeClick += Save;
+        usedBG = new List<int>();
+        int tmp = Random.Range(1, 7); usedBG.Add(tmp);
+        bg.sprite = Resources.Load<Sprite>("BG/" + tmp);
+        CD_click = 0;
         used = new List<int>();
-        time = begin;
-        StartCoroutine(CountDown());
-        RandomSprite();
-        InitializeGrid();
-    }
-    public void InitializeGrid()
-    {
         rows = 11;
         cols = 22;
-        
+        if (GameManager.instance.isContinue)
+        {
+            GameManager.instance.isContinue = false;
+            LoadExistDATA();
+            if (PlayerPrefs.GetInt("Changes") == 0)
+            {
+
+                StartCoroutine(CheckEnd());
+            }
+        }
+        else
+        {
+            PlayerPrefs.SetInt("Time", GameManager.instance.levelSetting[0].Time_Second);
+            RandomSprite();
+        }
+        time = PlayerPrefs.GetInt("Time");
+        int level = PlayerPrefs.GetInt("Level");
+        begin = GameManager.instance.levelSetting[(level < 8 && level >= 1) ? (level - 1) : 7].Time_Second;
+        cd.fillAmount = (float)time / begin;
+        a = StartCoroutine(CountDown());
+    }
+    private void OnDestroy()
+    {
+        BtnOnClick.isResume -= Resume;
+        BtnOnClick.isPause -= Pause;
+        onHomeClick -= Save;
+        Application.quitting -= Quit;
+    }
+    private void Quit()
+    {
+        PlayerPrefs.SetInt("HasDATA", 1);
+        Save();
+    }
+    void LoadExistDATA()
+    {
+        List<DATAsave> list = json.ReadFromJson();
+        List<int> inDATAsave = new List<int>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            inDATAsave.Add(list[i].index);
+        }
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            if (inDATAsave.Contains(blocks[i].transform.GetSiblingIndex()))
+            {
+                blocks[i].isAcitve = true;
+                int index = inDATAsave.IndexOf(blocks[i].transform.GetSiblingIndex());
+                blocks[i].id = list[index].id;
+                used.Add(blocks[i].id);
+                blocks[i].transform.GetChild(0).GetComponent<Image>().sprite = Resources.Load<Sprite>("Blocks/" + list[index].id);
+            }
+            else
+            {
+                blocks[i].Correct();
+            }
+        }
+        currentCouple = list.Count / 2;
+    }
+    private void Update()
+    {
+        CD_click -= Time.deltaTime;
     }
     IEnumerator CountDown()
     {
@@ -43,9 +128,11 @@ public class GameController : Singleton<GameController>
             cd.fillAmount -= (float)1 / begin;
             yield return new WaitForSeconds(1);
         }
+        Lose();
     }
     void RandomSprite()
     {
+        used = new List<int>();
         int dem = 0;
         while (dem < blocks.Count / 2)
         {
@@ -67,256 +154,152 @@ public class GameController : Singleton<GameController>
     {
         List<int> assigned = new List<int>();
         int count = 0;
-        while (assigned.Count < blocks.Count - 1)
+        int total = (isChanging) ? currentCouple * 2 - 1 : blocks.Count - 1;
+        while (assigned.Count < total)
         {
             Sprite randomSprite = Resources.Load<Sprite>("Blocks/" + used[count]);
-            int index = Random.Range(0, blocks.Count);
+            int index = 0;
 
             //1
-            if (assigned.Count == 0)
+            do
             {
-                assigned.Add(index);
+                index = Random.Range(0, blocks.Count);
             }
-            else
-            {
-                while (assigned.Count == 0 || assigned.Contains(index))
-                {
-                    index = Random.Range(0, blocks.Count);
-                }
-                assigned.Add(index);
-            }
+            while (assigned.Contains(index) || !blocks[index].isAcitve);
+            assigned.Add(index);
 
             //2
-            int index2 = Random.Range(0, blocks.Count);
-            while (assigned.Contains(index2))
+            int index2 = 0;
+            do
             {
                 index2 = Random.Range(0, blocks.Count);
             }
+            while (assigned.Contains(index2) || !blocks[index2].isAcitve);
             assigned.Add(index2);
-            blocks[index].transform.GetChild(0).GetComponent<Image>().sprite = randomSprite;
-            blocks[index].transform.GetComponent<GridCell>().id = used[count];
 
-            blocks[index2].transform.GetComponent<GridCell>().id = used[count];
+            blocks[index].transform.GetChild(0).GetComponent<Image>().sprite = randomSprite;
+            blocks[index].id = used[count];
+
+            blocks[index2].id = used[count];
             blocks[index2].transform.GetChild(0).GetComponent<Image>().sprite = randomSprite;
             count++;
         }
-
+        if (isChanging)
+            return;
+        currentCouple = assigned.Count / 2;
     }
+    public void Hint()
+    {
+        if (isSuggesting)
+            return;
+        if (PlayerPrefs.GetInt("Hint") == 0) return;
+        isSuggesting = true;
+        StartCoroutine(WaitToSuggestAgain());
+        findPath.Hint(blocks);
+        pp.Hint();
+    }
+    public void NextLevel()
+    {
 
+        pp.LevelUp();
+
+        if (WinPanel.activeSelf)
+        {
+            WinPanel.SetActive(false);
+        }
+        if (a != null)
+        {
+            StopCoroutine(a);
+        }
+        NewLevel();
+    }
+    public void Change()
+    {
+        if (isChanging)
+            return;
+        if (PlayerPrefs.GetInt("Changes") == 0)
+            return;
+        if (PlayerPrefs.GetInt("Changes") == 1)
+        {
+            StartCoroutine(CheckEnd());
+        }
+        PlaySound.instance.PlayRandomSound();
+        isChanging = true;
+        StartCoroutine(WaitToChangeAgain());
+        RandomBlocks();
+        pp.Changes();
+    }
+    public void Save()
+    {
+        if (isWinning)
+        {
+            NextLevel();
+        }
+        else if (!isLose)
+        {
+            PlayerPrefs.SetInt("Time", time);
+        }
+        else
+        {
+            NewLevel();
+        }
+
+        json.SaveToJson(blocks);
+    }
     public void CheckAndDrawPath()
     {
-        // Kiểm tra xem giá trị của hai ô có giống nhau không
         if (cell1.id != cell2.id)
         {
-            cell1 = null;
-            cell2 = null;
-            countClick = 0;
-            Debug.LogError("Không kết nối");
+            WrongChoice();
             return; // Giá trị không giống nhau, không kết nối
         }
-        CheckSpecial();
-        if (isSpecial)
-        {
-            Debug.LogError("isSpecial");
-            isSpecial = false;
-            CorrectChoice();
-            return;
-        }
-        // Nếu giá trị giống nhau, kiểm tra kết nối giữa hai ô
-        path = FindPath(cell1, cell2);
-
-        if (path != null && path.Count>0)
+        List<GridCell> path = findPath.FindPaths(cell1, cell2);
+        if (path != null && path.Count > 0)
         {
             CorrectChoice();
-            DrawPath();
-            
+            drawPath.Draw(path);
         }
         else
         {
             WrongChoice();
-            countClick = 0;
-            
-        }
-        cell1 = null;
-        cell2 = null;
-    }
-    void CheckSpecial()
-    {
-        foreach(GridCell nb in GetNeighbors(cell1))
-        {
-            if(nb.col==cell2.col && nb.row == cell2.row)
-            {
-                lineRenderer.positionCount = 0;
-                lineRenderer.positionCount = 2;
-                lineRenderer.SetPosition(0, (Vector2)cell1.transform.position);
-                lineRenderer.SetPosition(1, (Vector2)cell2.transform.position);
-                isSpecial = true; break;
-            }
         }
     }
-    private List<GridCell> FindPath(GridCell start, GridCell end)
-    {
-        Queue<GridCell> queue = new Queue<GridCell>();
-        Dictionary<GridCell, GridCell> cameFrom = new Dictionary<GridCell, GridCell>();
-        List<GridCell> path = new List<GridCell>();
 
-        queue.Enqueue(start);
-        cameFrom[start] = null;
-        while (queue.Count > 0)
-        {
-            GridCell current = queue.Dequeue();
-
-            if (current.row == end.row && current.col == end.col)
-            {
-                Debug.LogError("hihiocho!");
-                // Truy vết ngược để lấy đường đi
-                while (current != null)
-                {
-
-                    path.Add(current);
-                    current = cameFrom[current];
-                }
-
-                path.Reverse();
-                //return path;
-            }
-            
-            foreach (GridCell neighbor in GetNeighbors(current))
-            {
-                if (!cameFrom.ContainsKey(neighbor) && !neighbor.isAcitve || (neighbor.col==end.col && neighbor.row==end.row))
-                {
-                    Debug.LogError("duong di: " + neighbor.row + " " + neighbor.col);
-                    queue.Enqueue(neighbor);
-                    cameFrom[neighbor] = current;
-                }
-            }
-        }
-
-        //return null; // Không tìm thấy đường đi
-        return CheckPath(path);
-    }
-    private List<GridCell> CheckPath(List<GridCell> path)
-    {
-        int dem = 0;
-        if (path.Count > 2)
-        {
-            for (int i = 1; i < path.Count - 1; i++)
-            {
-                GridCell current = path[i];
-                GridCell previous = path[i - 1];
-                GridCell next = path[i + 1];
-
-                // Kiểm tra xem có gấp khúc quá 2 lần hay không
-                if (!AreCellsInLine(previous, current, next))
-                {
-                    dem++;
-                    Debug.LogError("+1 gap khuc");
-                    if (dem > 2)
-                    {
-                        Debug.LogError("gap khuc qua 2 lan!");
-                        // Gấp khúc quá 2 lần, return null hoặc làm gì đó tương ứng
-                        return null;
-                    }
-                }
-            }
-            
-        }
-        return path;
-    }
-
-    // Hàm kiểm tra xem ba ô có nằm trên cùng một đường thẳng hay không
-    bool AreCellsInLine(GridCell c1, GridCell c2, GridCell c3)
-    {
-        return (c1.row == c2.row && c2.row == c3.row) || (c1.col == c2.col && c2.col == c3.col);
-    }
-    private List<GridCell> GetNeighbors(GridCell cell)
-    {
-        List<GridCell> neighbors = new List<GridCell>();
-
-        // Kiểm tra ô phía trên
-        if (cell != null)
-        {
-            int up = (cell.row - 1) * cols + cell.col;
-            int down = (cell.row + 1) * cols + cell.col;
-            int left = (cell.row) * cols + (cell.col - 1);
-            int right = (cell.row) * cols + cell.col + 1;
-            if (cell.row >= 1)
-            {
-                GridCell topNeighbor = gridLayoutGroup.transform.GetChild(up).GetComponent<GridCell>();
-
-                neighbors.Add(topNeighbor);
-            }
-
-            // Kiểm tra ô phía dưới
-            if (cell.row <= 9)
-            {
-
-                GridCell bottomNeighbor = gridLayoutGroup.transform.GetChild(down).GetComponent<GridCell>();
-
-                neighbors.Add(bottomNeighbor);
-            }
-
-            // Kiểm tra ô bên trái
-            if (cell.col >= 1)
-            {
-
-                GridCell leftNeighbor = gridLayoutGroup.transform.GetChild(left).GetComponent<GridCell>();
-
-                neighbors.Add(leftNeighbor);
-            }
-
-            // Kiểm tra ô bên phải
-            if (cell.col <= 20)
-            {
-
-                GridCell rightNeighbor = gridLayoutGroup.transform.GetChild(right).GetComponent<GridCell>();
-
-                neighbors.Add(rightNeighbor);
-            }
-        }
-        
-        return neighbors;
-    }
-
-    // Hàm vẽ đường đi sử dụng Line Renderer
-    private void DrawPath()
-    {
-        if (lineRenderer != null && path != null && path.Count > 1)
-        {
-            lineRenderer.positionCount = 0;
-            lineRenderer.positionCount = path.Count;
-            for (int i = 0; i < path.Count; i++)
-            {
-                Vector3 worldPosition = new Vector3(path[i].transform.position.x, path[i].transform.position.y, 0);
-                lineRenderer.SetPosition(i, worldPosition);
-            }
-        }
-    }
-    void DrawSpecial(List<Vector2> pos)
-    {
-        if (pos.Count > 0)
-        {
-            lineRenderer.positionCount = 0;
-            lineRenderer.positionCount = pos.Count;
-            for (int i = 0; i < pos.Count; i++)
-            {
-                Debug.Log(pos[i]);
-                lineRenderer.SetPosition(i, pos[i]);
-            }
-        }
-    }
     void CorrectChoice()
     {
-        
-        //PlaySound.instance.PlayCorrectSound();
-        
+        PlaySound.instance.PlayCorrectSound();
+        currentCouple -= 1;
         cell1.Correct();
         cell2.Correct();
-        cell2 = null;
-        cell1 = null;
-        Debug.LogError("Có kết nối");
+        StartCoroutine(Move());
+
         StartCoroutine(timeDrawCD());
-        
+        if (currentCouple == 0)
+        {
+            PlaySound.instance.PlayWINSound();
+            Win();
+        }
+    }
+    void Win()
+    {
+        isWinning = true;
+        WinPanel.SetActive(true);
+        winText.transform.DOScale(new Vector2(0.5f, 0.5f), 0.5f).OnComplete(() =>
+        {
+            winText.transform.DOScale(new Vector2(1.5f, 1.5f), 0.5f).OnComplete(() =>
+            {
+                winText.transform.DOScale(Vector2.one, 0.5f);
+            });
+        });
+    }
+    void Lose()
+    {
+        isLose = true;
+        if (!WinPanel.activeSelf && !LosePanel.activeSelf)
+        {
+            LosePanel.SetActive(true);
+        }
+        PlaySound.instance.PlayGOverSound();
     }
     void WrongChoice()
     {
@@ -324,14 +307,132 @@ public class GameController : Singleton<GameController>
         cell2.Wrong();
         cell1 = null;
         cell2 = null;
-        //PlaySound.instance.PlayWrongSound();
-        Debug.LogError("Không kết nối");
+        PlaySound.instance.PlayWrongSound();
     }
     IEnumerator timeDrawCD()
     {
-        yield return new WaitForSeconds(0.5f);
-        lineRenderer.positionCount = 0;
-        path.Clear();
+        yield return new WaitForSeconds(0.3f);
+        drawPath.ResetLine();
+    }
+    public void Pause()
+    {
+        //Debug.LogError("pause");
+
+        if (a != null)
+        {
+            StopCoroutine(a);
+        }
+    }
+    public void Resume()
+    {
+        //Debug.LogError("resume");
+        a = StartCoroutine(CountDown());
+    }
+    public void Restart()
+    {
+        if (isLose)
+        {
+            isLose = false;
+        }
+        if (WinPanel.activeSelf)
+        {
+            WinPanel.SetActive(false);
+        }
+        pp.ReStart();
+        if (LosePanel.activeSelf)
+        {
+            LosePanel.SetActive(false);
+        }
+        NewLevel();
+    }
+    void NewLevel()
+    {
+        PlaySound.instance.PlayClickSound();
+        blocks = new List<GridCell>();
+        for (int i = 0; i < gridLayoutGroup.transform.childCount; i++)
+        {
+            GridCell tmp = gridLayoutGroup.transform.GetChild(i).GetComponent<GridCell>();
+            if ((tmp.row >= 1 && tmp.row <= 9) && (tmp.col >= 1 && tmp.col <= 20))
+            {
+                tmp.NextLevel();
+                blocks.Add(tmp);
+            }
+        }
+
+        int level = PlayerPrefs.GetInt("Level");
+        begin = GameManager.instance.levelSetting[(level < 8 && level >= 1) ? (level - 1) : 7].Time_Second;
+        time = begin;
+        cd.fillAmount = 1;
+        a = StartCoroutine(CountDown());
+        RandomSprite();
+
+        int index = 0;
+        if (usedBG.Count == 6)
+        {
+            usedBG.Clear();
+        }
+        do
+        {
+            index = Random.Range(1, 7);
+        }
+        while (usedBG.Contains(index));
+        usedBG.Add(index);
+        bg.sprite = Resources.Load<Sprite>("BG/" + index);
+    }
+    IEnumerator CheckEnd()
+    {
+        while (time > 0)
+        {
+            if (findPath.IsEnd(blocks))
+            {
+                Lose();
+                //Debug.LogError("isEnd");
+                break;
+            }
+            yield return new WaitForSeconds(10);
+        }
+    }
+    IEnumerator Move()
+    {
+        isMovingCell = true;
+        yield return new WaitForSeconds(0.3f);
+        moveCell.MoveByLevel(cell1, cell2, gridLayoutGroup);
+
+        isMovingCell = false;
+        cell2 = null;
+        cell1 = null;
+    }
+    IEnumerator WaitToChangeAgain()
+    {
+        float tmpTime = 4;
+        change.fillAmount = 0;
+        while (tmpTime > 0)
+        {
+            float newTime = Time.deltaTime;
+            change.fillAmount += newTime/4;
+            tmpTime -= newTime;
+            Debug.LogError(tmpTime);
+            yield return new WaitForSeconds(newTime);
+            
+        }
+        change.fillAmount = 1;
+        isChanging = false;
+    }
+    IEnumerator WaitToSuggestAgain()
+    {
+        float tmpTime = 1;
+        hint.fillAmount = 0;
+        while (tmpTime > 0)
+        {
+            float newTime = Time.deltaTime; 
+            hint.fillAmount +=  newTime;
+            tmpTime -= newTime;
+            Debug.LogError(tmpTime);
+            yield return new WaitForSeconds(newTime);
+            
+        }
+        hint.fillAmount = 1;
+        isSuggesting = false;
     }
 }
 

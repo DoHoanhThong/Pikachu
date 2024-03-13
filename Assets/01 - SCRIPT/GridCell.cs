@@ -5,81 +5,107 @@ using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour
 {
+    [SerializeField] Color newColor;
+    Coroutine a;
+    [SerializeField] float timeSuggest;
     public bool isAcitve;
     [SerializeField] GameObject btn;
     [SerializeField] GameObject border;
     public int id;
     public int row;
     public int col;
-    [SerializeField] bool isSelecting;
+    [SerializeField] bool isSuggesting;
     private void Awake()
     {
-        
+        timeSuggest = 1;
+        if (btn != null)
+        {
+            btn.transform.GetComponent<Image>().color = new Vector4(0.9056604f, 0.8749021f, 0.8749021f, 1);
+            
+        }
         GridLayoutGroup gridLayoutGroup = transform.parent.GetComponent<GridLayoutGroup>();
         // Lấy index của ô trong danh sách con của GridLayoutGroup
         int index = transform.GetSiblingIndex();
         // Tính toán hàng và cột dựa trên index và kích thước của GridLayoutGroup
-        row = index / gridLayoutGroup.constraintCount ;
-        col = index % gridLayoutGroup.constraintCount ;
-        if((row>=1 && row<=9) && (col >= 1 && col <= 20))
+        row = index / 22;
+        col = index % 22;
+        if ((row >= 1 && row <= 9) && (col >= 1 && col <= 20))
         {
             isAcitve = true;
             return;
         }
+        btn.SetActive(false);
         isAcitve = false;
     }
-
+    
+    public void Hint()
+    {
+        if (a != null)
+        {
+            StopCoroutine(a);
+        }
+        a = StartCoroutine(getHint());
+    }
     public void OnCellClick()
     {
-        //PlaySound.instance.PlayClickSound();
-        border.SetActive(!border.activeSelf);     
+
+        if (GameController.instance.CD_click >= 0 || isSuggesting || GameController.instance.isMovingCell)
+            return;
+        GameController.instance.CD_click = 0.1f;
+        PlaySound.instance.PlayClickSound();
+        border.SetActive(!border.activeSelf);
         if (!border.activeSelf)
         {
-            GameController.instance.countClick -= 1;
+            if (GameController.instance.cell1 == this.GetComponent<GridCell>())
+            {
+                GameController.instance.cell1 = null;
+            }
+            else if (GameController.instance.cell2 == this.GetComponent<GridCell>())
+            {
+                GameController.instance.cell2 = null;
+            }
+            btn.transform.GetComponent<Image>().color = new Vector4(0.9056604f, 0.8749021f, 0.8749021f, 1);
             return;
         }
-        GameController.instance.countClick += 1;
-        if (GameController.instance.cell1==null)
+        btn.transform.GetComponent<Image>().color = newColor;
+        if (GameController.instance.cell1 == null)
         {
             GameController.instance.cell1 = this.GetComponent<GridCell>();
         }
         else if (GameController.instance.cell2 == null)
         {
             GameController.instance.cell2 = this.GetComponent<GridCell>();
-            if (GameController.instance.countClick == 2)
-            {
-                GameController.instance.CheckAndDrawPath();
-                GameController.instance.countClick = 0;
-            }
+            GameController.instance.CheckAndDrawPath();
         }
-       
+
     }
-    public int ColLeft()
-    {
-        return col - 1;
-    }
-    public int ColRight()
-    {
-        return col + 1;
-    }
-    public int RowTop()
-    {
-        return row - 1;
-    }
-    public int RowBottom()
-    {
-        return row + 1;
-    }
-    public int ColTop()
-    {
-        return col - 1;
-    }
-    public int ColBottom()
-    {
-        return col + 1;
-    }
+    //public int ColLeft()
+    //{
+    //    return col - 1;
+    //}
+    //public int ColRight()
+    //{
+    //    return col + 1;
+    //}
+    //public int RowTop()
+    //{
+    //    return row - 1;
+    //}
+    //public int RowBottom()
+    //{
+    //    return row + 1;
+    //}
+    //public int ColTop()
+    //{
+    //    return col - 1;
+    //}
+    //public int ColBottom()
+    //{
+    //    return col + 1;
+    //}
     public void Wrong()
     {
+        btn.transform.GetComponent<Image>().color = new Vector4(0.9056604f, 0.8749021f, 0.8749021f, 1);
         border.SetActive(false);
     }
     public void Correct()
@@ -88,6 +114,24 @@ public class GridCell : MonoBehaviour
         this.transform.GetComponent<Image>().enabled = false;
         btn.SetActive(false);
         Wrong();
+    }
+    public void NextLevel()
+    {
+        if (isAcitve) return;
+        if ((row >= 1 && row <= 9) && (col >= 1 && col <= 20))
+        {
+            btn.SetActive(true);
+            this.transform.GetComponent<Image>().enabled = true;
+            isAcitve = true;
+        }
+    }
+    IEnumerator getHint()
+    {
+        isSuggesting = true;
+        border.SetActive(true);
+        yield return new WaitForSeconds(timeSuggest);
+        isSuggesting = false;
+        border.SetActive(false);
     }
 
 }
